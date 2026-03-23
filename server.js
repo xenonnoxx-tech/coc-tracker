@@ -5,7 +5,7 @@ const app = express();
 
 // ─── CONFIG ───────────────────────────────────────────────
 const API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImNiZDhhZThiLWM4NTYtNGQyYy05NDg4LTE5YWViOTVjODUxZiIsImlhdCI6MTc3NDMwMjU2MSwic3ViIjoiZGV2ZWxvcGVyLzVkYTk0MTAzLTM5ZGEtZWJiZS03NjI2LTAxZmE0ZDBiZGQ0YSIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjc0LjIyMC40OC4yNDYiXSwidHlwZSI6ImNsaWVudCJ9XX0.0S0QenNZEefQEJuRO_FMlF3bet8OeOR9G0njMoEEDqpuK3Zo3p5xqWAJvtvP4OcPFDjTYLWmQBDeCYeM-e9nsQ";
-let CLAN_TAG = "C92R9JCJ";
+const CLAN_TAG = "C92R9JCJ";
 const REFRESH_INTERVAL = 60000;
 // ──────────────────────────────────────────────────────────
 
@@ -61,13 +61,9 @@ app.get("/api/search-player", async (req, res) => {
   }
 });
 
-app.post("/api/set-clan", async (req, res) => {
-  const { tag } = req.body;
-  if (!tag) return res.status(400).json({ error: "tag is required" });
-  CLAN_TAG = tag.replace("#", "");
-  cachedData = null;
+// Clan tag is fixed — always use the configured clan
+app.post("/api/set-clan", (req, res) => {
   res.json({ ok: true });
-  refreshData();
 });
 
 // ── Data fetching ──
