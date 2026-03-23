@@ -1,15 +1,16 @@
 const express = require("express");
 const axios = require("axios");
+const path = require("path");
 
 const app = express();
 
 // ─── CONFIG ───────────────────────────────────────────────
-const API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImNiZDhhZThiLWM4NTYtNGQyYy05NDg4LTE5YWViOTVjODUxZiIsImlhdCI6MTc3NDMwMjU2MSwic3ViIjoiZGV2ZWxvcGVyLzVkYTk0MTAzLTM5ZGEtZWJiZS03NjI2LTAxZmE0ZDBiZGQ0YSIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjc0LjIyMC40OC4yNDYiXSwidHlwZSI6ImNsaWVudCJ9XX0.0S0QenNZEefQEJuRO_FMlF3bet8OeOR9G0njMoEEDqpuK3Zo3p5xqWAJvtvP4OcPFDjTYLWmQBDeCYeM-e9nsQ";
+const API_KEY = process.env.COC_API_KEY || "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjdjYzkzMjVjLTgwZGItNDFjNC04Y2M3LTdiYWI5ZGZkNzlmNiIsImlhdCI6MTc3NDI5ODY0Niwic3ViIjoiZGV2ZWxvcGVyLzVkYTk0MTAzLTM5ZGEtZWJiZS03NjI2LTAxZmE0ZDBiZGQ0YSIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjI3LjQuMjE4LjEiXSwidHlwZSI6ImNsaWVudCJ9XX0.GmU7ndE7uzvXBhODhYPR2PMTcPdge4BaVg4Hb6YGEKY7jcNMTCJ3vmf8BuDdEFx_arN9U0G8XkiR6ygU7gGWJw";
 const CLAN_TAG = "C92R9JCJ";
 const REFRESH_INTERVAL = 60000;
 // ──────────────────────────────────────────────────────────
 
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
 const headers = { Authorization: `Bearer ${API_KEY}` };
@@ -66,6 +67,39 @@ app.post("/api/set-clan", (req, res) => {
   res.json({ ok: true });
 });
 
+// Image proxy — fetches icon from Fandom and serves it through our server
+const imageCache = {};
+app.get("/api/icon-proxy", async (req, res) => {
+  const name = (req.query.name || "").trim();
+  if (!name) return res.status(400).end();
+  const cacheKey = name;
+  if (imageCache[cacheKey]) {
+    res.set("Content-Type", "image/png");
+    res.set("Cache-Control", "public, max-age=86400");
+    return res.send(imageCache[cacheKey]);
+  }
+  try {
+    const fileName = `File:${name.replace(/\s+/g,'_')}_info.png`;
+    const infoRes = await axios.get("https://clashofclans.fandom.com/api.php", {
+      params: { action:"query", titles:fileName, prop:"imageinfo", iiprop:"url", format:"json" },
+      timeout: 5000
+    });
+    const pages = infoRes.data?.query?.pages || {};
+    const url = Object.values(pages)[0]?.imageinfo?.[0]?.url;
+    if (!url) return res.status(404).end();
+    const imgRes = await axios.get(url, {
+      responseType: "arraybuffer",
+      headers: { Referer: "https://clashofclans.fandom.com/" },
+      timeout: 8000
+    });
+    const buf = Buffer.from(imgRes.data);
+    imageCache[cacheKey] = buf;
+    res.set("Content-Type", "image/png");
+    res.set("Cache-Control", "public, max-age=86400");
+    res.send(buf);
+  } catch { res.status(404).end(); }
+});
+
 // Icon fetcher — uses Fandom wiki API with in-memory cache
 const iconCache = {};
 app.get("/api/icons", async (req, res) => {
@@ -75,12 +109,15 @@ app.get("/api/icons", async (req, res) => {
   await Promise.all(names.map(async name => {
     if (iconCache[name]) { result[name] = iconCache[name]; return; }
     try {
+      // Fetch the _info.png file directly from the wiki
+      const fileName = `File:${name.replace(/\s+/g,'_')}_info.png`;
       const r = await axios.get("https://clashofclans.fandom.com/api.php", {
-        params: { action:"query", titles:name, prop:"pageimages", format:"json", pithumbsize:40 },
+        params: { action:"query", titles:fileName, prop:"imageinfo", iiprop:"url", format:"json" },
         timeout: 5000
       });
       const pages = r.data?.query?.pages || {};
-      const url = Object.values(pages)[0]?.thumbnail?.source || null;
+      const page = Object.values(pages)[0];
+      let url = page?.imageinfo?.[0]?.url || null;
       if (url) iconCache[name] = url;
       result[name] = url;
     } catch { result[name] = null; }
