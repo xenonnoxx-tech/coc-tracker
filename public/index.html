@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CoC Clan Tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d0f1a;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    /* ── Clan Search Modal ── */
+    #search-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000000cc;
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    #search-modal.open { display: flex; }
+
+    .modal-box {
+      background: #1a1d2e;
+      border: 1px solid #f0a500;
+      border-radius: 12px;
+      padding: 28px;
+      width: 90%;
+      max-width: 500px;
+    }
+
+    .modal-box h2 { color: #f0a500; margin-bottom: 16px; font-size: 1.1rem; }
+
+    .modal-input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .modal-input-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #0d0f1a;
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .modal-input-row input:focus { border-color: #f0a500; }
+
+    .modal-input-row button, #close-modal {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      background: #f0a500;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    #close-modal {
+      background: #333;
+      color: #aaa;
+      margin-top: 12px;
+      width: 100%;
+    }
+
+    #modal-results { max-height: 280px; overflow-y: auto; }
+
+    .clan-result {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      margin-bottom: 6px;
+      background: #0d0f1a;
+      transition: border-color 0.2s;
+    }
+    .clan-result:hover { border-color: #f0a500; }
+    .clan-result img { width: 36px; height: 36px; object-fit: contain; }
+    .clan-result .cr-name { font-weight: 600; color: #fff; }
+    .clan-result .cr-meta { font-size: 0.75rem; color: #888; }
+
+    #modal-error { color: #e74c3c; font-size: 0.85rem; margin-top: 8px; }
+    #modal-loading { color: #888; font-size: 0.85rem; margin-top: 8px; }
+
+    /* ── Player Search Modal ── */
+    #player-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000000ee;
+      z-index: 100;
+      align-items: flex-start;
+      justify-content: center;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    #player-modal.open { display: flex; }
+
+    #player-modal .modal-box {
+      max-width: 700px;
+      width: 100%;
+    }
+
+    #player-card { margin-top: 14px; }
+
+    /* profile header */
+    .pc-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #0d0f1a;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid #2a2d3e;
+    }
+    .pc-avatar {
+      width: 54px; height: 54px;
+      background: #f0a500;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; font-weight: bold; color: #000;
+      flex-shrink: 0;
+    }
+    .pc-name { font-size: 1.3rem; font-weight: bold; color: #fff; }
+    .pc-tag  { font-size: 0.75rem; color: #555; margin-top: 2px; }
+    .pc-clan { font-size: 0.8rem; color: #f0a500; margin-top: 4px; }
+
+    /* section */
+    .pc-section { margin-bottom: 12px; }
+    .pc-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #f0a500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #2a2d3e;
+    }
+
+    /* stat grid */
+    .pc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .pc-stat {
+      background: #0d0f1a;
+      border: 1px solid #2a2d3e;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .pc-stat .label { font-size: 0.68rem; color: #666; margin-bottom: 3px; }
+    .pc-stat .value { font-size: 0.95rem; font-weight: bold; color: #f0a500; }
+    .pc-stat .value.white { color: #fff; }
+    .pc-stat .value.blue  { color: #5dade2; }
+    .pc-stat .value.green { color: #2ecc71; }
+
+    /* heroes */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .hero-card {
+      background: #0d0f1a;
+      border: 1px solid #2a2d3e;
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hero-name { font-size: 0.8rem; color: #ccc; }
+    .hero-level { font-size: 1rem; font-weight: bold; color: #f0a500; }
+    .hero-max   { font-size: 0.7rem; color: #555; }
+
+    /* troops/spells tags */
+    .troop-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .troop-tag {
+      background: #0d0f1a;
+      border: 1px solid #2a2d3e;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      color: #ccc;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .troop-tag span { color: #f0a500; font-weight: bold; }
+
+    /* achievements */
+    .ach-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+    .ach-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0d0f1a;
+      border: 1px solid #2a2d3e;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-size: 0.78rem;
+    }
+    .ach-name { color: #ccc; }
+    .ach-stars { color: #f0a500; letter-spacing: 1px; }
+    .ach-progress { font-size: 0.7rem; color: #555; }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1d2e, #2a1a0e);
+      border-bottom: 2px solid #f0a500;
+      padding: 20px 30px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    #clan-badge {
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
+    }
+
+    .clan-info h1 {
+      font-size: 1.8rem;
+      color: #f0a500;
+      text-shadow: 0 0 10px #f0a50088;
+    }
+
+    .clan-info .meta {
+      display: flex;
+      gap: 20px;
+      margin-top: 6px;
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+
+    .clan-info .meta span {
+      background: #1e2235;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid #333;
+    }
+
+    /* ── Status bar ── */
+    #status-bar {
+      background: #111422;
+      padding: 8px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: #666;
+      border-bottom: 1px solid #1e2235;
+    }
+
+    #status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2ecc71;
+      margin-right: 6px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    #countdown { color: #f0a500; font-weight: bold; }
+
+    /* ── Main ── */
+    main { padding: 20px 30px; }
+
+    /* ── Search ── */
+    #search-wrap {
+      margin-bottom: 16px;
+    }
+
+    #search {
+      width: 100%;
+      max-width: 400px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #1a1d2e;
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    #search:focus { border-color: #f0a500; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    thead tr {
+      background: #1a1d2e;
+      border-bottom: 2px solid #f0a500;
+    }
+
+    th {
+      padding: 12px 14px;
+      text-align: left;
+      color: #f0a500;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    th:hover { color: #ffd055; }
+
+    tbody tr {
+      border-bottom: 1px solid #1e2235;
+      transition: background 0.2s;
+    }
+
+    tbody tr:hover { background: #1a1d2e; }
+
+    tbody tr.updated {
+      animation: flash 1s ease;
+    }
+
+    @keyframes flash {
+      0% { background: #2a3a1a; }
+      100% { background: transparent; }
+    }
+
+    td { padding: 11px 14px; white-space: nowrap; }
+
+    /* rank */
+    .rank { font-weight: bold; color: #888; width: 40px; }
+    .rank-1 { color: #ffd700; }
+    .rank-2 { color: #c0c0c0; }
+    .rank-3 { color: #cd7f32; }
+
+    /* name */
+    .player-name { font-weight: 600; color: #fff; cursor: pointer; }
+    .player-name:hover { color: #f0a500; text-decoration: underline; }
+    .player-tag  { font-size: 0.75rem; color: #555; }
+
+    /* role badge */
+    .role {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .role-leader     { background: #8b000066; color: #ff6b6b; border: 1px solid #ff6b6b55; }
+    .role-coLeader   { background: #f0a50022; color: #f0a500; border: 1px solid #f0a50055; }
+    .role-admin      { background: #2980b922; color: #5dade2; border: 1px solid #5dade255; }
+    .role-member     { background: #1e2235; color: #888; border: 1px solid #333; }
+
+    /* th level pill */
+    .th-pill {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      background: #1e2235;
+      border: 1px solid #333;
+    }
+
+    /* trophies */
+    .trophy { color: #f0a500; }
+    .war-stars { color: #5dade2; }
+
+    /* loading */
+    #loading {
+      text-align: center;
+      padding: 80px 20px;
+      color: #555;
+    }
+
+    #loading .spinner {
+      width: 50px; height: 50px;
+      border: 4px solid #1e2235;
+      border-top-color: #f0a500;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .clan-info .meta { flex-wrap: wrap; }
+      th, td { padding: 9px 8px; font-size: 0.8rem; }
+      .hide-mobile { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Player Search Modal -->
+<div id="player-modal">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="margin-bottom:0">Search Player by Tag</h2>
+      <button onclick="document.getElementById('player-modal').classList.remove('open')" style="background:#333;border:none;color:#aaa;font-size:1.2rem;width:32px;height:32px;border-radius:6px;cursor:pointer;line-height:1">&times;</button>
+    </div>
+    <div class="modal-input-row">
+      <input id="player-tag-input" type="text" placeholder="Enter player tag (e.g. #202RVCUPJ)" />
+      <button id="player-search-btn">Search</button>
+    </div>
+    <div id="player-modal-loading" style="display:none;color:#888;font-size:0.85rem">Searching...</div>
+    <div id="player-modal-error" style="display:none;color:#e74c3c;font-size:0.85rem"></div>
+    <div id="player-card" style="display:none"></div>
+    <button id="close-player-modal" style="margin-top:12px;width:100%;padding:10px;border:none;border-radius:8px;background:#333;color:#aaa;cursor:pointer;font-size:0.9rem">Close</button>
+  </div>
+</div>
+
+<!-- Clan Search Modal -->
+<div id="search-modal">
+  <div class="modal-box">
+    <h2>Search Clan</h2>
+    <div class="modal-input-row">
+      <input id="clan-search-input" type="text" placeholder="Enter clan name or tag (e.g. G2CQYVRY8)" />
+      <button id="clan-search-btn">Search</button>
+    </div>
+    <div id="modal-loading" style="display:none">Searching...</div>
+    <div id="modal-error" style="display:none"></div>
+    <div id="modal-results"></div>
+    <button id="close-modal">Cancel</button>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <img id="clan-badge" src="" alt="Clan Badge" onerror="this.style.display='none'" />
+  <div class="clan-info">
+    <h1 id="clan-name">Loading clan...</h1>
+    <div class="meta">
+      <span id="clan-tag">—</span>
+      <span>Level <span id="clan-level">—</span></span>
+      <span><span id="clan-members">—</span> Members</span>
+      <span>War Wins: <span id="clan-warwins">—</span></span>
+      <span id="change-clan-btn" style="cursor:pointer;color:#f0a500;border-color:#f0a500" onclick="openClanSearch()">Change Clan</span>
+    </div>
+  </div>
+</header>
+
+<!-- Status Bar -->
+<div id="status-bar">
+  <div><span id="status-dot"></span> Live — auto-refreshes every 60s</div>
+  <div>
+    <span id="search-player-btn" style="cursor:pointer;color:#f0a500;margin-right:14px" onclick="openPlayerSearch()">Search Player</span>
+    Next update in <span id="countdown">60</span>s &nbsp;|&nbsp; Last updated: <span id="last-updated">—</span>
+  </div>
+</div>
+
+<!-- Main -->
+<main>
+  <div id="search-wrap">
+    <input id="search" type="text" placeholder="Search player..." />
+  </div>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Fetching clan data...</p>
+  </div>
+
+  <div class="table-wrap" id="table-wrap" style="display:none">
+    <table>
+      <thead>
+        <tr>
+          <th data-col="rank">#</th>
+          <th data-col="name">Player</th>
+          <th data-col="role">Role</th>
+          <th data-col="th">TH</th>
+          <th data-col="trophies">🏆 Trophies</th>
+          <th data-col="bestTrophies" class="hide-mobile">Best</th>
+          <th data-col="warStars" class="hide-mobile">⭐ War Stars</th>
+          <th data-col="donations" class="hide-mobile">Donations</th>
+          <th data-col="expLevel" class="hide-mobile">XP</th>
+        </tr>
+      </thead>
+      <tbody id="player-list"></tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+  let allPlayers = [];
+  let sortCol = "trophies";
+  let sortAsc = false;
+  let countdown = 60;
+  let countdownTimer;
+
+  // ── Polling ──
+  async function fetchData() {
+    try {
+      const res = await fetch("/api/data");
+      const data = await res.json();
+      if (data.loading || !data.players) return;
+      allPlayers = data.players;
+      renderClan(data.clan);
+      renderPlayers();
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("table-wrap").style.display = "block";
+      document.getElementById("last-updated").textContent = new Date(data.updatedAt).toLocaleTimeString();
+      document.getElementById("status-dot").style.background = "#2ecc71";
+      resetCountdown();
+    } catch (err) {
+      document.getElementById("status-dot").style.background = "#e74c3c";
+    }
+  }
+
+  // Poll every 60 seconds
+  fetchData();
+  setInterval(fetchData, 60000);
+
+  // ── Countdown ──
+  function resetCountdown() {
+    clearInterval(countdownTimer);
+    countdown = 60;
+    document.getElementById("countdown").textContent = countdown;
+    countdownTimer = setInterval(() => {
+      countdown = Math.max(0, countdown - 1);
+      document.getElementById("countdown").textContent = countdown;
+    }, 1000);
+  }
+
+  // ── Render Clan Info ──
+  function renderClan(clan) {
+    document.getElementById("clan-badge").src = clan.badgeUrl || "";
+    document.getElementById("clan-name").textContent = clan.name;
+    document.getElementById("clan-tag").textContent = clan.tag;
+    document.getElementById("clan-level").textContent = clan.level;
+    document.getElementById("clan-members").textContent = clan.members;
+    document.getElementById("clan-warwins").textContent = clan.warWins;
+  }
+
+  // ── Render Players ──
+  function renderPlayers() {
+    const query = document.getElementById("search").value.toLowerCase();
+    let list = allPlayers.filter(p =>
+      p.name.toLowerCase().includes(query) ||
+      p.tag.toLowerCase().includes(query)
+    );
+
+    // Sort
+    list = list.sort((a, b) => {
+      let av = a[sortCol] ?? 0;
+      let bv = b[sortCol] ?? 0;
+      if (typeof av === "string") av = av.toLowerCase();
+      if (typeof bv === "string") bv = bv.toLowerCase();
+      if (av < bv) return sortAsc ? -1 : 1;
+      if (av > bv) return sortAsc ? 1 : -1;
+      return 0;
+    });
+
+    const tbody = document.getElementById("player-list");
+    const existing = {};
+    tbody.querySelectorAll("tr[data-tag]").forEach(r => existing[r.dataset.tag] = r);
+
+    list.forEach((p, i) => {
+      const rank = i + 1;
+      const roleClass = `role-${p.role}`;
+      const roleLabel = p.role === "coLeader" ? "Co-Leader" :
+                        p.role.charAt(0).toUpperCase() + p.role.slice(1);
+
+      const html = `
+        <td class="rank ${rank <= 3 ? 'rank-'+rank : ''}">${rank}</td>
+        <td>
+          <div class="player-name" onclick="openPlayerByTag('${p.tag}')">${escHtml(p.name)}</div>
+          <div class="player-tag">${p.tag}</div>
+        </td>
+        <td><span class="role ${roleClass}">${roleLabel}</span></td>
+        <td><span class="th-pill">${p.townHallLevel}</span></td>
+        <td class="trophy">${p.trophies.toLocaleString()}</td>
+        <td class="trophy hide-mobile">${p.bestTrophies.toLocaleString()}</td>
+        <td class="war-stars hide-mobile">${(p.warStars || 0).toLocaleString()}</td>
+        <td class="hide-mobile">${(p.donations || 0).toLocaleString()}</td>
+        <td class="hide-mobile">${p.expLevel}</td>
+      `;
+
+      if (existing[p.tag]) {
+        const row = existing[p.tag];
+        if (row.innerHTML !== html) {
+          row.innerHTML = html;
+          row.classList.remove("updated");
+          void row.offsetWidth; // reflow
+          row.classList.add("updated");
+        }
+        tbody.appendChild(row); // reorder
+        delete existing[p.tag];
+      } else {
+        const row = document.createElement("tr");
+        row.dataset.tag = p.tag;
+        row.innerHTML = html;
+        tbody.appendChild(row);
+      }
+    });
+
+    // Remove rows no longer in list
+    Object.values(existing).forEach(r => r.remove());
+  }
+
+  // ── Sort ──
+  document.querySelectorAll("th[data-col]").forEach(th => {
+    th.addEventListener("click", () => {
+      const col = th.dataset.col;
+      if (sortCol === col) sortAsc = !sortAsc;
+      else { sortCol = col; sortAsc = false; }
+      renderPlayers();
+    });
+  });
+
+  // ── Search ──
+  document.getElementById("search").addEventListener("input", renderPlayers);
+
+  // ── Escape HTML ──
+  function escHtml(str) {
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  // ── Open player modal directly by tag ──
+  function openPlayerByTag(tag) {
+    document.getElementById("player-modal").classList.add("open");
+    document.getElementById("player-card").style.display = "none";
+    document.getElementById("player-modal-error").style.display = "none";
+    document.getElementById("player-tag-input").value = tag;
+    searchPlayer();
+  }
+
+  // ── Player Search Modal ──
+  function openPlayerSearch() {
+    document.getElementById("player-modal").classList.add("open");
+    document.getElementById("player-tag-input").focus();
+    document.getElementById("player-card").style.display = "none";
+    document.getElementById("player-modal-error").style.display = "none";
+    document.getElementById("player-tag-input").value = "";
+  }
+
+  document.getElementById("close-player-modal").addEventListener("click", () => {
+    document.getElementById("player-modal").classList.remove("open");
+  });
+
+  document.getElementById("player-search-btn").addEventListener("click", searchPlayer);
+  document.getElementById("player-tag-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") searchPlayer();
+  });
+
+  async function searchPlayer() {
+    let tag = document.getElementById("player-tag-input").value.trim();
+    if (!tag) return;
+
+    const cardEl    = document.getElementById("player-card");
+    const errorEl   = document.getElementById("player-modal-error");
+    const loadingEl = document.getElementById("player-modal-loading");
+
+    cardEl.style.display = "none";
+    errorEl.style.display = "none";
+    loadingEl.style.display = "block";
+
+    try {
+      const res = await fetch(`/api/search-player?tag=${encodeURIComponent(tag)}`);
+      const p = await res.json();
+      loadingEl.style.display = "none";
+
+      if (!res.ok || p.error) {
+        const messages = {
+          403: "API key invalid or IP not whitelisted. Go to developer.clashofclans.com and whitelist your IP.",
+          404: "Player not found. Double-check the tag.",
+          429: "Too many requests. Wait a moment and try again.",
+        };
+        errorEl.textContent = messages[p.status] || p.error || `Error ${res.status}`;
+        errorEl.style.display = "block";
+        return;
+      }
+
+      const roleLabel = p.clan?.role
+        ? (p.clan.role === "coLeader" ? "Co-Leader" : p.clan.role.charAt(0).toUpperCase() + p.clan.role.slice(1))
+        : "—";
+
+      const stars = n => "★".repeat(Math.min(n,3)) + "☆".repeat(Math.max(0,3-n));
+
+      const heroesHtml = (p.heroes || []).map(h => `
+        <div class="hero-card">
+          <div class="hero-name">${escHtml(h.name)}</div>
+          <div style="text-align:right">
+            <div class="hero-level">${h.level}<span class="hero-max">/${h.maxLevel}</span></div>
+          </div>
+        </div>`).join("");
+
+      const homeTroops = (p.troops || []).filter(t => t.village === "home");
+      const builderTroops = (p.troops || []).filter(t => t.village === "builderBase");
+      const spells = (p.spells || []);
+      const pets = (p.troops || []).filter(t => ["L.A.S.S.I","Mighty Yak","Electro Owl","Unicorn","Phoenix","Poison Lizard","Diggy","Frosty","Spirit Fox","Angry Jelly","Sneezy"].includes(t.name));
+      const homeTroopsOnly = homeTroops.filter(t => !pets.find(pt => pt.name === t.name));
+
+      const troopTags = arr => arr.map(t =>
+        `<div class="troop-tag">${escHtml(t.name)} <span>${t.level}/${t.maxLevel}</span></div>`
+      ).join("");
+
+      const topAch = [...(p.achievements || [])]
+        .sort((a,b) => b.stars - a.stars || b.value - a.value)
+        .slice(0, 20);
+
+      const achHtml = topAch.map(a => `
+        <div class="ach-row">
+          <span class="ach-name">${escHtml(a.name)}</span>
+          <span class="ach-stars">${stars(a.stars)}</span>
+          <span class="ach-progress">${a.value.toLocaleString()} / ${a.target.toLocaleString()}</span>
+        </div>`).join("");
+
+      const equipment = (p.heroEquipment || []);
+      const eqHtml = equipment.map(e =>
+        `<div class="troop-tag">${escHtml(e.name)} <span>${e.level}/${e.maxLevel}</span></div>`
+      ).join("");
+
+      cardEl.innerHTML = `
+        <!-- Header -->
+        <div class="pc-header">
+          <div class="pc-avatar">${escHtml(p.name[0].toUpperCase())}</div>
+          <div>
+            <div class="pc-name">${escHtml(p.name)}</div>
+            <div class="pc-tag">${p.tag}</div>
+            <div class="pc-clan">${p.clan ? `${escHtml(p.clan.name)} · ${roleLabel}` : 'No Clan'}</div>
+          </div>
+        </div>
+
+        <!-- Core Stats -->
+        <div class="pc-section">
+          <div class="pc-section-title">Core Stats</div>
+          <div class="pc-grid">
+            <div class="pc-stat"><div class="label">Town Hall</div><div class="value">TH${p.townHallLevel}</div></div>
+            <div class="pc-stat"><div class="label">XP Level</div><div class="value white">${p.expLevel}</div></div>
+            <div class="pc-stat"><div class="label">Trophies</div><div class="value">🏆 ${p.trophies.toLocaleString()}</div></div>
+            <div class="pc-stat"><div class="label">Best Trophies</div><div class="value">${p.bestTrophies.toLocaleString()}</div></div>
+            <div class="pc-stat"><div class="label">War Stars</div><div class="value blue">⭐ ${(p.warStars||0).toLocaleString()}</div></div>
+            <div class="pc-stat"><div class="label">Attack Wins</div><div class="value green">${(p.attackWins||0).toLocaleString()}</div></div>
+            <div class="pc-stat"><div class="label">Defense Wins</div><div class="value green">${(p.defenseWins||0).toLocaleString()}</div></div>
+            <div class="pc-stat"><div class="label">Donations</div><div class="value white">${(p.donations||0).toLocaleString()}</div></div>
+            <div class="pc-stat"><div class="label">Donations Received</div><div class="value white">${(p.donationsReceived||0).toLocaleString()}</div></div>
+          </div>
+        </div>
+
+        <!-- Builder Base -->
+        <div class="pc-section">
+          <div class="pc-section-title">Builder Base</div>
+          <div class="pc-grid">
+            <div class="pc-stat"><div class="label">Builder Hall</div><div class="value">BH${p.builderHallLevel||'—'}</div></div>
+            <div class="pc-stat"><div class="label">Builder Trophies</div><div class="value">🏆 ${(p.builderBaseTrophies||0).toLocaleString()}</div></div>
+            <div class="pc-stat"><div class="label">Best Builder Trophies</div><div class="value">${(p.bestBuilderBaseTrophies||0).toLocaleString()}</div></div>
+          </div>
+        </div>
+
+        <!-- Clan Capital -->
+        <div class="pc-section">
+          <div class="pc-section-title">Clan Capital</div>
+          <div class="pc-grid">
+            <div class="pc-stat"><div class="label">Capital Contributions</div><div class="value">${(p.clanCapitalContributions||0).toLocaleString()}</div></div>
+            <div class="pc-stat"><div class="label">War Preference</div><div class="value white">${p.warPreference === 'in' ? 'IN' : 'OUT'}</div></div>
+            <div class="pc-stat"><div class="label">Role</div><div class="value white">${roleLabel}</div></div>
+          </div>
+        </div>
+
+        <!-- Heroes -->
+        ${heroesHtml ? `<div class="pc-section">
+          <div class="pc-section-title">Heroes</div>
+          <div class="hero-grid">${heroesHtml}</div>
+        </div>` : ''}
+
+        <!-- Hero Equipment -->
+        ${eqHtml ? `<div class="pc-section">
+          <div class="pc-section-title">Hero Equipment</div>
+          <div class="troop-list">${eqHtml}</div>
+        </div>` : ''}
+
+        <!-- Pets -->
+        ${pets.length ? `<div class="pc-section">
+          <div class="pc-section-title">Pets</div>
+          <div class="troop-list">${troopTags(pets)}</div>
+        </div>` : ''}
+
+        <!-- Home Troops -->
+        ${homeTroopsOnly.length ? `<div class="pc-section">
+          <div class="pc-section-title">Home Village Troops</div>
+          <div class="troop-list">${troopTags(homeTroopsOnly)}</div>
+        </div>` : ''}
+
+        <!-- Spells -->
+        ${spells.length ? `<div class="pc-section">
+          <div class="pc-section-title">Spells</div>
+          <div class="troop-list">${troopTags(spells)}</div>
+        </div>` : ''}
+
+        <!-- Builder Troops -->
+        ${builderTroops.length ? `<div class="pc-section">
+          <div class="pc-section-title">Builder Base Troops</div>
+          <div class="troop-list">${troopTags(builderTroops)}</div>
+        </div>` : ''}
+
+        <!-- Achievements -->
+        ${achHtml ? `<div class="pc-section">
+          <div class="pc-section-title">Top Achievements</div>
+          <div class="ach-list">${achHtml}</div>
+        </div>` : ''}
+      `;
+      cardEl.style.display = "block";
+    } catch (err) {
+      loadingEl.style.display = "none";
+      errorEl.textContent = "Request failed: " + err.message;
+      errorEl.style.display = "block";
+    }
+  }
+
+  // ── Clan Search Modal ──
+  function openClanSearch() {
+    document.getElementById("search-modal").classList.add("open");
+    document.getElementById("clan-search-input").focus();
+  }
+
+  document.getElementById("close-modal").addEventListener("click", () => {
+    document.getElementById("search-modal").classList.remove("open");
+  });
+
+  document.getElementById("clan-search-btn").addEventListener("click", searchClan);
+  document.getElementById("clan-search-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") searchClan();
+  });
+
+  async function searchClan() {
+    const name = document.getElementById("clan-search-input").value.trim();
+    if (!name) return;
+
+    const resultsEl = document.getElementById("modal-results");
+    const errorEl   = document.getElementById("modal-error");
+    const loadingEl = document.getElementById("modal-loading");
+
+    resultsEl.innerHTML = "";
+    errorEl.style.display = "none";
+    loadingEl.style.display = "block";
+
+    try {
+      const res = await fetch(`/api/search-clan?name=${encodeURIComponent(name)}`);
+      const clans = await res.json();
+      loadingEl.style.display = "none";
+
+      if (!clans.length) {
+        errorEl.textContent = "No clans found. Try a different name.";
+        errorEl.style.display = "block";
+        return;
+      }
+
+      clans.forEach(clan => {
+        const div = document.createElement("div");
+        div.className = "clan-result";
+        div.innerHTML = `
+          <img src="${clan.badgeUrl || ''}" onerror="this.style.display='none'" />
+          <div>
+            <div class="cr-name">${escHtml(clan.name)}</div>
+            <div class="cr-meta">${clan.tag} &nbsp;·&nbsp; Level ${clan.level} &nbsp;·&nbsp; ${clan.members} members</div>
+          </div>
+        `;
+        div.addEventListener("click", () => selectClan(clan.tag));
+        resultsEl.appendChild(div);
+      });
+    } catch (err) {
+      loadingEl.style.display = "none";
+      errorEl.textContent = "Search failed: " + err.message;
+      errorEl.style.display = "block";
+    }
+  }
+
+  async function selectClan(tag) {
+    document.getElementById("search-modal").classList.remove("open");
+    document.getElementById("loading").style.display = "block";
+    document.getElementById("table-wrap").style.display = "none";
+    document.getElementById("clan-name").textContent = "Loading...";
+
+    // Ask server to switch clan
+    await fetch("/api/set-clan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tag })
+    });
+    // Server will emit "update" with new clan data
+  }
+</script>
+</body>
+</html>
