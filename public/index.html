@@ -863,21 +863,20 @@
       `;
       cardEl.style.display = "block";
 
-      // Fetch icons in background and inject them
+      // Fetch icons in background and inject
       const allItems = [...pets, ...homeTroopsOnly, ...spells, ...builderTroops, ...equipment];
       const names = [...new Set(allItems.map(t => t.name))].join(",");
       if (names) {
-        fetch(`/api/icons?names=${encodeURIComponent(names)}`)
-          .then(r => r.json())
-          .then(icons => {
-            cardEl.querySelectorAll(".troop-tag[data-name]").forEach(el => {
-              const url = icons[el.dataset.name];
-              if (url && !el.querySelector("img")) {
-                el.insertAdjacentHTML("afterbegin", `<img src="${url}" alt="" onerror="this.remove()" onload="if(this.naturalWidth<5)this.remove()" style="width:24px;height:24px;object-fit:contain;vertical-align:middle;margin-right:4px;border-radius:4px;background:#fff;padding:1px;" />`);
-              }
-            });
-          }).catch(() => {});
+        cardEl.querySelectorAll(".troop-tag[data-name]").forEach(el => {
+          const name = el.dataset.name;
+          const img = document.createElement("img");
+          img.src = `/api/icon-proxy?name=${encodeURIComponent(name)}`;
+          img.style.cssText = "width:24px;height:24px;object-fit:contain;vertical-align:middle;margin-right:4px;border-radius:3px;";
+          img.onerror = () => img.remove();
+          el.insertBefore(img, el.firstChild);
+        });
       }
+
     } catch (err) {
       loadingEl.style.display = "none";
       errorEl.textContent = "Request failed: " + err.message;
