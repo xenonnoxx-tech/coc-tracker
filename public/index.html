@@ -475,7 +475,7 @@
       <span><span id="clan-members">—</span>&nbsp;Members</span>
       <span>War Wins:&nbsp;<span id="clan-warwins">—</span></span>
       <button id="change-clan-btn" onclick="openClanSearch()" style="background:linear-gradient(135deg,#f0a500,#e67e00);color:#000;border:none;padding:6px 14px;border-radius:20px;font-weight:bold;font-size:13px;cursor:pointer;letter-spacing:0.5px;">⚔️ Search Clan</button>
-      <button id="reset-clan-btn" onclick="resetToDefault()" style="display:none">↩ Home Clan</button>
+      <button id="reset-clan-btn" onclick="resetToDefault()" style="display:none;background:linear-gradient(135deg,#f0a500,#e67e00);color:#000;border:none;padding:6px 14px;border-radius:20px;font-weight:bold;font-size:13px;cursor:pointer;letter-spacing:0.5px;">🏠 Home Clan</button>
     </div>
   </div>
 </header>
@@ -749,9 +749,18 @@
       const pets = (p.troops || []).filter(t => ["L.A.S.S.I","Mighty Yak","Electro Owl","Unicorn","Phoenix","Poison Lizard","Diggy","Frosty","Spirit Fox","Angry Jelly","Sneezy"].includes(t.name));
       const homeTroopsOnly = homeTroops.filter(t => !pets.find(pt => pt.name === t.name));
 
-      const troopTags = arr => arr.map(t =>
-        `<div class="troop-tag">${escHtml(t.name)} <span>${t.level}/${t.maxLevel}</span></div>`
-      ).join("");
+      function cocIcon(name, type) {
+        const slug = name.replace(/\./g,'').replace(/\s+/g,'_');
+        return `https://cdn.clashperk.com/assets/troops/${encodeURIComponent(slug)}.png`;
+      }
+
+      const troopTags = arr => arr.map(t => {
+        const icon = cocIcon(t.name, 'troops');
+        return `<div class="troop-tag">
+          <img src="${icon}" alt="" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:4px;border-radius:3px;" />
+          ${escHtml(t.name)} <span>${t.level}/${t.maxLevel}</span>
+        </div>`;
+      }).join("");
 
       const topAch = [...(p.achievements || [])]
         .sort((a,b) => b.stars - a.stars || b.value - a.value)
@@ -765,14 +774,21 @@
         </div>`).join("");
 
       const equipment = (p.heroEquipment || []);
-      const eqHtml = equipment.map(e =>
-        `<div class="troop-tag">${escHtml(e.name)} <span>${e.level}/${e.maxLevel}</span></div>`
-      ).join("");
+      const eqHtml = equipment.map(e => {
+        const icon = cocIcon(e.name, 'equipment');
+        return `<div class="troop-tag">
+          <img src="${icon}" alt="" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:4px;border-radius:3px;" />
+          ${escHtml(e.name)} <span>${e.level}/${e.maxLevel}</span>
+        </div>`;
+      }).join("");
 
       cardEl.innerHTML = `
         <!-- Header -->
         <div class="pc-header">
-          <div class="pc-avatar">${escHtml(p.name[0].toUpperCase())}</div>
+          ${p.league?.iconUrls?.medium
+            ? `<img class="pc-avatar" src="${p.league.iconUrls.medium}" alt="League" style="object-fit:contain;background:#1a1f35;" onerror="this.outerHTML='<div class=\\'pc-avatar\\'>${escHtml(p.name[0].toUpperCase())}</div>'" />`
+            : `<img class="pc-avatar" src="https://cdn.clashperk.com/assets/townhalls/${p.townHallLevel}.png" alt="TH${p.townHallLevel}" style="object-fit:contain;background:#1a1f35;" onerror="this.outerHTML='<div class=\\'pc-avatar\\'>${escHtml(p.name[0].toUpperCase())}</div>'" />`
+          }
           <div>
             <div class="pc-name">${escHtml(p.name)}</div>
             <div class="pc-tag">${p.tag}</div>
