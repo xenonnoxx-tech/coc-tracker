@@ -464,6 +464,8 @@
       <span>Level <span id="clan-level">—</span></span>
       <span><span id="clan-members">—</span> Members</span>
       <span>War Wins: <span id="clan-warwins">—</span></span>
+      <button id="change-clan-btn" onclick="openClanSearch()">Change Clan</button>
+      <button id="reset-clan-btn" onclick="resetToDefault()" style="display:none">↩ Home Clan</button>
     </div>
   </div>
 </header>
@@ -903,13 +905,40 @@
     document.getElementById("table-wrap").style.display = "none";
     document.getElementById("clan-name").textContent = "Loading...";
 
-    // Ask server to switch clan
-    await fetch("/api/set-clan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tag })
+    try {
+      const res = await fetch(`/api/clan-data?tag=${encodeURIComponent(tag)}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      allPlayers = data.players;
+      renderClan(data.clan);
+      renderPlayers();
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("table-wrap").style.display = "block";
+      document.getElementById("last-updated").textContent = new Date(data.updatedAt).toLocaleTimeString();
+      // Show home clan button
+      document.getElementById("reset-clan-btn").style.display = "inline-block";
+      document.getElementById("change-clan-btn").style.display = "none";
+    } catch (err) {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("table-wrap").style.display = "block";
+      alert("Failed to load clan: " + err.message);
+    }
+  }
+
+  function resetToDefault() {
+    document.getElementById("reset-clan-btn").style.display = "none";
+    document.getElementById("change-clan-btn").style.display = "inline-block";
+    document.getElementById("loading").style.display = "block";
+    document.getElementById("table-wrap").style.display = "none";
+    fetch("/api/data").then(r => r.json()).then(data => {
+      if (data.loading || !data.players) return;
+      allPlayers = data.players;
+      renderClan(data.clan);
+      renderPlayers();
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("table-wrap").style.display = "block";
+      document.getElementById("last-updated").textContent = new Date(data.updatedAt).toLocaleTimeString();
     });
-    // Server will emit "update" with new clan data
   }
 </script>
 </body>
