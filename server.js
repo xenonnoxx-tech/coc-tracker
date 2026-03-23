@@ -66,6 +66,37 @@ app.post("/api/set-clan", (req, res) => {
   res.json({ ok: true });
 });
 
+// Fetch any clan on demand (client-side temporary view)
+app.get("/api/clan-data", async (req, res) => {
+  let tag = (req.query.tag || "").trim();
+  if (!tag) return res.status(400).json({ error: "tag is required" });
+  if (!tag.startsWith("#")) tag = `#${tag}`;
+  try {
+    const clanRes = await axios.get(`https://api.clashofclans.com/v1/clans/${encodeURIComponent(tag)}`, { headers });
+    const clan = clanRes.data;
+    const memberTags = clan.memberList.map(m => m.tag);
+    const batchSize = 10;
+    const players = [];
+    for (let i = 0; i < memberTags.length; i += batchSize) {
+      const batch = memberTags.slice(i, i + batchSize);
+      const results = await Promise.all(batch.map(t =>
+        axios.get(`https://api.clashofclans.com/v1/players/${encodeURIComponent(t)}`, { headers })
+          .then(r => r.data).catch(() => null)
+      ));
+      players.push(...results.filter(Boolean));
+      if (i + batchSize < memberTags.length) await new Promise(r => setTimeout(r, 300));
+    }
+    players.sort((a, b) => b.trophies - a.trophies);
+    res.json({
+      clan: { name: clan.name, tag: clan.tag, level: clan.clanLevel, members: clan.members, warWins: clan.warWins, badgeUrl: clan.badgeUrls?.medium },
+      players,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(err.response?.status || 500).json({ error: err.response?.data?.message || err.message });
+  }
+});
+
 // ── Data fetching ──
 
 async function fetchClan() {
