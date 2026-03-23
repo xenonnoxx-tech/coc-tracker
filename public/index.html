@@ -253,6 +253,10 @@
       padding: 3px 10px;
       border-radius: 20px;
       border: 1px solid #333;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
     }
 
     /* ── Status bar ── */
@@ -457,15 +461,15 @@
 <!-- Header -->
 <header>
   <img id="clan-badge" src="" alt="Clan Badge" onerror="this.style.display='none'" />
-  <img id="custom-logo" src="/logo.png" alt="Logo" onerror="this.style.display='none'" style="height:80px;width:80px;object-fit:contain;margin-right:10px;border-radius:50%;" />
+  <img id="custom-logo" src="/logo.png" alt="Logo" onerror="this.style.display='none'" style="height:120px;width:120px;object-fit:contain;margin-right:10px;border-radius:50%;" />
   <div class="clan-info">
     <h1 id="clan-name">Loading clan...</h1>
     <div class="meta">
       <span id="clan-tag">—</span>
-      <span>Level <span id="clan-level">—</span></span>
-      <span><span id="clan-members">—</span> Members</span>
-      <span>War Wins: <span id="clan-warwins">—</span></span>
-      <button id="change-clan-btn" onclick="openClanSearch()">Change Clan</button>
+      <span>Level&nbsp;<span id="clan-level">—</span></span>
+      <span><span id="clan-members">—</span>&nbsp;Members</span>
+      <span>War Wins:&nbsp;<span id="clan-warwins">—</span></span>
+      <button id="change-clan-btn" onclick="openClanSearch()" style="background:linear-gradient(135deg,#f0a500,#e67e00);color:#000;border:none;padding:6px 14px;border-radius:20px;font-weight:bold;font-size:13px;cursor:pointer;letter-spacing:0.5px;">⚔️ Search Clan</button>
       <button id="reset-clan-btn" onclick="resetToDefault()" style="display:none">↩ Home Clan</button>
     </div>
   </div>
@@ -489,7 +493,7 @@
     <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#aaa;">
       To Join Our Clan
       <a href="https://chat.whatsapp.com/IV3bh8SgKNY4MYYS8OBL20" target="_blank" title="Join WhatsApp Group" style="display:flex;align-items:center;text-decoration:none;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="22" height="22"><circle cx="16" cy="16" r="16" fill="#25D366"/><path d="M23.5 19.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a8.8 8.8 0 01-2.6-1.6 9.7 9.7 0 01-1.8-2.2c-.2-.4 0-.6.1-.7l.5-.6.3-.5v-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 00-.9.4 3.7 3.7 0 00-1.1 2.7 6.4 6.4 0 001.3 3.4 14.7 14.7 0 005.6 5 6.5 6.5 0 002.8.7 3.4 3.4 0 002.1-.7 3 3 0 001-2c0-.4-.3-.6-.4-.7z" fill="#fff"/></svg>
+        <img src="/whatsapp.png" alt="WhatsApp" style="width:22px;height:22px;object-fit:contain;" onerror="this.style.display='none'" />
       </a>
     </div>
   </div>
