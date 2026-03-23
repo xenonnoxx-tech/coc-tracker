@@ -66,6 +66,28 @@ app.post("/api/set-clan", (req, res) => {
   res.json({ ok: true });
 });
 
+// Icon fetcher — uses Fandom wiki API with in-memory cache
+const iconCache = {};
+app.get("/api/icons", async (req, res) => {
+  const names = (req.query.names || "").split(",").map(n => n.trim()).filter(Boolean);
+  if (!names.length) return res.json({});
+  const result = {};
+  await Promise.all(names.map(async name => {
+    if (iconCache[name]) { result[name] = iconCache[name]; return; }
+    try {
+      const r = await axios.get("https://clashofclans.fandom.com/api.php", {
+        params: { action:"query", titles:name, prop:"pageimages", format:"json", pithumbsize:40 },
+        timeout: 5000
+      });
+      const pages = r.data?.query?.pages || {};
+      const url = Object.values(pages)[0]?.thumbnail?.source || null;
+      if (url) iconCache[name] = url;
+      result[name] = url;
+    } catch { result[name] = null; }
+  }));
+  res.json(result);
+});
+
 // Fetch any clan on demand (client-side temporary view)
 app.get("/api/clan-data", async (req, res) => {
   let tag = (req.query.tag || "").trim();
