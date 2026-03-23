@@ -248,15 +248,20 @@
       color: #aaa;
     }
 
-    .clan-info .meta span {
+    .clan-info .meta > span {
       background: #1e2235;
       padding: 3px 10px;
       border-radius: 20px;
       border: 1px solid #333;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
       white-space: nowrap;
+    }
+    .clan-info .meta > span span {
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
     }
 
     /* ── Status bar ── */
@@ -461,7 +466,7 @@
 <!-- Header -->
 <header>
   <img id="clan-badge" src="" alt="Clan Badge" onerror="this.style.display='none'" />
-  <img id="custom-logo" src="/logo.png" alt="Logo" onerror="this.style.display='none'" style="height:120px;width:120px;object-fit:contain;margin-right:10px;border-radius:50%;" />
+  <img id="custom-logo" src="/logo.png" alt="Logo" onerror="this.style.display='none'" style="height:160px;width:160px;object-fit:contain;margin-right:10px;border-radius:50%;" />
   <div class="clan-info">
     <h1 id="clan-name">Loading clan...</h1>
     <div class="meta">
