@@ -749,15 +749,14 @@
       const pets = (p.troops || []).filter(t => ["L.A.S.S.I","Mighty Yak","Electro Owl","Unicorn","Phoenix","Poison Lizard","Diggy","Frosty","Spirit Fox","Angry Jelly","Sneezy"].includes(t.name));
       const homeTroopsOnly = homeTroops.filter(t => !pets.find(pt => pt.name === t.name));
 
-      function cocIcon(name, type) {
-        const slug = name.replace(/\./g,'').replace(/\s+/g,'_');
-        return `https://cdn.clashperk.com/assets/troops/${encodeURIComponent(slug)}.png`;
+      function cocIcon(name) {
+        const slug = name.replace(/\s+/g,'_');
+        return `https://clashofclans.fandom.com/wiki/Special:FilePath/${encodeURIComponent(slug)}_info.png`;
       }
 
       const troopTags = arr => arr.map(t => {
-        const icon = cocIcon(t.name, 'troops');
         return `<div class="troop-tag">
-          <img src="${icon}" alt="" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:4px;border-radius:3px;" />
+          <img src="${cocIcon(t.name)}" alt="" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:4px;border-radius:3px;" />
           ${escHtml(t.name)} <span>${t.level}/${t.maxLevel}</span>
         </div>`;
       }).join("");
@@ -775,9 +774,8 @@
 
       const equipment = (p.heroEquipment || []);
       const eqHtml = equipment.map(e => {
-        const icon = cocIcon(e.name, 'equipment');
         return `<div class="troop-tag">
-          <img src="${icon}" alt="" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:4px;border-radius:3px;" />
+          <img src="${cocIcon(e.name)}" alt="" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:4px;border-radius:3px;" />
           ${escHtml(e.name)} <span>${e.level}/${e.maxLevel}</span>
         </div>`;
       }).join("");
