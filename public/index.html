@@ -520,7 +520,10 @@
     try {
       const res = await fetch("/api/data");
       const data = await res.json();
-      if (data.loading || !data.players) return;
+      if (data.loading || !data.players) {
+        setTimeout(fetchData, 3000); // retry every 3s until data is ready
+        return;
+      }
       allPlayers = data.players;
       renderClan(data.clan);
       renderPlayers();
@@ -531,6 +534,7 @@
       resetCountdown();
     } catch (err) {
       document.getElementById("status-dot").style.background = "#e74c3c";
+      setTimeout(fetchData, 3000); // retry on error too
     }
   }
 
